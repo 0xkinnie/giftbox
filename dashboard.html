@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GiftBox — Demo</title>
+<style>
+  :root { --bg:#09090b; --panel:#131316; --panel2:#1a1a1e; --line:#26262b; --txt:#e4e4e7; --mut:#a1a1aa; --acc:#34d399; --bad:#f87171; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:720px; margin:0 auto; padding:34px 16px 40px; }
+  h1 { font-size:26px; margin:0 0 6px; text-align:center; }
+  h1 .g { color:var(--acc); }
+  .sub { text-align:center; color:var(--mut); font-size:14px; line-height:1.55; margin:0 auto 24px; max-width:560px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:16px; }
+  .card p.d { color:var(--mut); font-size:13px; line-height:1.55; margin:0 0 12px; }
+  label { display:block; font-size:12px; color:var(--mut); margin:10px 0 5px; }
+  input[type=text], input[type=number], select { width:100%; background:#0c0c0e; border:1px solid var(--line); color:var(--txt); border-radius:8px; padding:9px 10px; font-size:13.5px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+  @media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+  button.run { margin-top:16px; background:var(--acc); color:#06251b; border:none; font-weight:700; font-size:14.5px; border-radius:10px; padding:11px 20px; cursor:pointer; }
+  button.ghostbtn { margin-top:10px; background:var(--panel2); color:var(--txt); border:1px solid var(--line); font-weight:600; font-size:13px; border-radius:10px; padding:9px 14px; cursor:pointer; }
+  button.ghostbtn:disabled { opacity:.45; cursor:not-allowed; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .giftcard { display:none; margin-top:16px; border:1px dashed var(--acc); border-radius:12px; padding:16px; background:#0c1512; white-space:pre-wrap; font-size:13.5px; line-height:1.65; }
+  .giftcard.show { display:block; }
+  .ecard { display:none; margin-top:16px; border-radius:14px; overflow:hidden; border:1px solid var(--line); }
+  .ecard.show { display:block; }
+  .ecard img { width:100%; display:block; }
+  .verdict { display:none; margin-top:14px; border-radius:12px; padding:13px 15px; font-size:13.5px; line-height:1.6; border:1px solid var(--line); }
+  .verdict.show { display:block; }
+  .verdict.ok { background:#0c231a; border-color:#14532d; }
+  .verdict.no { background:#2a1215; border-color:#7f1d1d; }
+  .verdict ol { margin:8px 0 0; padding-left:20px; }
+  .note { font-size:12.5px; color:var(--mut); margin-top:8px; line-height:1.55; }
+  .hidden { display:none; }
+  footer { color:var(--mut); font-size:12px; line-height:1.6; text-align:center; max-width:720px; margin:0 auto; padding:0 16px 34px; }
+  code { font-family:ui-monospace,Menlo,monospace; background:#1f1f23; padding:1px 5px; border-radius:5px; font-size:11.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎁 <span class="g">GiftBox</span> — demo</h1>
+  <p class="sub">Send a <b>real crypto token</b> to someone with <b>no wallet and no crypto experience</b>. Pick from a curated catalog — stablecoins, BTC, ETH, tokenized stocks — they claim it with a code, get a free MoonPay wallet, and can cash out to their <b>bank account</b> with MoonPay Sell. No funds move until the gift is claimed.</p>
+
+  <div class="card">
+    <h2>1 · Sender — create a gift</h2>
+    <p class="d">Calls <code>create_gift</code>. Tokens resolve from GiftBox's verified catalog (contract addresses checked against the chain explorers and CoinGecko) — an agent can never gift a scam clone. Try gifting <b>0.5 NVDA</b> on Robinhood Chain.</p>
+    <div class="grid">
+      <div><label>From</label><input type="text" id="s-sender" value="Kinnie"></div>
+      <div><label>To</label><input type="text" id="s-recip" value="Mom"></div>
+      <div><label>Chain</label><select id="s-chain"><option value="8453">Base</option><option value="4663">Robinhood Chain</option></select></div>
+      <div><label>Category</label><select id="s-cat">
+        <option value="stablecoin">Stablecoin</option>
+        <option value="btc">BTC</option>
+        <option value="eth">ETH</option>
+        <option value="stock">Tokenized stock</option>
+      </select></div>
+      <div id="stockwrap" class="hidden"><label>Stock</label><select id="s-stock"></select></div>
+      <div><label>Token</label><input type="text" id="s-token" readonly value="USDC — USD Coin"></div>
+      <div><label>Amount (in token units)</label><input type="number" id="s-amount" value="25" min="0" step="any"></div>
+      <div><label>Expires in (days)</label><input type="number" id="s-expiry" value="30" min="1" max="365"></div>
+    </div>
+    <label>Message</label><input type="text" id="s-msg" value="Happy birthday! 🎂">
+    <div id="catnote" class="note"></div>
+    <button class="run" id="s-create">Create gift</button>
+    <div class="giftcard" id="giftcard"></div>
+    <div class="ecard" id="ecardwrap"><img id="ecardimg" alt="GiftBox e-card"></div>
+    <div class="row">
+      <button class="ghostbtn hidden" id="s-ecard">🖼️ Generate e-card</button>
+      <button class="ghostbtn hidden" id="s-copylink">🔗 Copy e-card link</button>
+      <button class="ghostbtn hidden" id="s-sharelink">📤 Copy share link</button>
+      <button class="ghostbtn hidden" id="s-cancel">Cancel this gift</button>
+    </div>
+    <div class="note" id="copied"></div>
+  </div>
+
+  <div class="card">
+    <h2>2 · Recipient — claim it</h2>
+    <p class="d">Calls <code>check_gift</code> (then <code>prepare_claim</code> in PayBox — an unsigned payment the sender approves with their passkey). Try the code from your gift card; a wrong code is rejected.</p>
+    <div class="grid">
+      <div><label>Claim code</label><input type="text" id="c-code" placeholder="e.g. RMU77-YRKRA"></div>
+      <div><label>Your MoonPay wallet address</label><input type="text" id="c-wallet" value="0x1111111111111111111111111111111111111111"></div>
+    </div>
+    <button class="run" id="c-check">Check &amp; claim</button>
+    <div class="verdict" id="verdict"></div>
+  </div>
+</div>
+<footer>Demo of the GiftBox PayBox plugin (create_gift · create_ecard · check_gift · prepare_claim · mark_claimed · cancel_gift). The plugin never holds funds or keys: PayBox executes the claim payment from the sender's wallet after passkey approval. Cash-out via MoonPay Sell (moonpay.com/sell). Catalog: USDC/USDG · cbBTC (Base) · native ETH · Coinbase B20 stocks on Base (8 decimals) · Robinhood Token stocks on Robinhood Chain (18 decimals), all addresses verified 2026-10-17.</footer>
+
+<script>
+"use strict";
+const $ = (id)=>document.getElementById(id);
+const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CATALOG = {
+  "8453": { stablecoin:{symbol:"USDC",name:"USD Coin"}, btc:{symbol:"cbBTC",name:"Coinbase Wrapped BTC"}, eth:{symbol:"ETH",name:"Ether (native)"},
+    stocks:{ NVDA:"NVIDIA (Coinbase B20)", AAPL:"Apple (Coinbase B20)", TSLA:"Tesla (Coinbase B20)", GOOGL:"Alphabet (Coinbase B20)", META:"Meta (Coinbase B20)", MSFT:"Microsoft (Coinbase B20)", AMZN:"Amazon (Coinbase B20)" } },
+  "4663": { stablecoin:{symbol:"USDG",name:"Global Dollar"}, btc:null, eth:{symbol:"ETH",name:"Ether (native)"},
+    stocks:{ NVDA:"NVIDIA • Robinhood Token", AAPL:"Apple • Robinhood Token", TSLA:"Tesla • Robinhood Token", GOOGL:"Alphabet • Robinhood Token" } }
+};
+function genCode(){ let a="", b=""; for(let i=0;i<5;i++){ a+=ALPHABET[Math.floor(Math.random()*ALPHABET.length)]; b+=ALPHABET[Math.floor(Math.random()*ALPHABET.length)]; } return a+"-"+b; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+let gift = null;
+
+function refreshToken(){
+  const chain = $("s-chain").value, cat = $("s-cat").value, c = CATALOG[chain];
+  const stockWrap = $("stockwrap");
+  let tok = null, note = "";
+  if (cat === "stock") {
+    stockWrap.classList.remove("hidden");
+    const sel = $("s-stock");
+    if (sel.dataset.chain !== chain) { sel.innerHTML = Object.keys(c.stocks).map(k=>`<option value="${k}">${k}</option>`).join(""); sel.dataset.chain = chain; }
+    const sym = sel.value || Object.keys(c.stocks)[0];
+    tok = { symbol: sym, name: c.stocks[sym] };
+  } else {
+    stockWrap.classList.add("hidden");
+    tok = c[cat];
+    if (cat === "btc" && !tok) note = "cbBTC is live on Robinhood Chain via Chainlink CCIP, but its contract isn't verified in the GiftBox catalog yet — BTC gifts are Base-only for now.";
+  }
+  $("s-token").value = tok ? `${tok.symbol} — ${tok.name}` : "Not available on this chain";
+  $("catnote").textContent = note;
+  $("s-create").disabled = !tok;
+}
+$("s-chain").addEventListener("change", refreshToken);
+$("s-cat").addEventListener("change", refreshToken);
+$("s-stock").addEventListener("change", refreshToken);
+refreshToken();
+
+function instructions(g){
+  return [
+    `Create a free MoonPay account at moonpay.com — it gives you a wallet address to receive the gift (no crypto experience needed).`,
+    `Send the sender your wallet address together with the gift claim code (${g.claimCode}).`,
+    `The sender approves the gift payment in PayBox (passkey) and ${g.amount} ${g.tokenSymbol} is sent to your wallet on chain ${g.chainId}.`,
+    `To turn it into money in your bank: in MoonPay choose Sell, pick ${g.tokenSymbol} and the amount, send it from your wallet to the MoonPay address shown, and MoonPay pays out to your bank account or card (min. sell about $20; bank-transfer fees from about 1%; payout from minutes to ~2 business days).`,
+    `You can also simply keep the ${g.tokenSymbol} in your wallet — it's yours either way.`
+  ];
+}
+
+const THEMES = { celebration:{from:"#064e3b",to:"#0ea371",fg:"#ecfdf5",sub:"#a7f3d0",pill:"#052e22"} };
+function ecardSvg(g){
+  const t = THEMES.celebration;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t.from}"/><stop offset="1" stop-color="${t.to}"/></linearGradient></defs><rect width="1200" height="630" fill="url(#bg)"/><text x="600" y="128" text-anchor="middle" font-size="86">🎁</text><text x="600" y="196" text-anchor="middle" font-family="system-ui, sans-serif" font-size="34" fill="${t.sub}" letter-spacing="4">YOU'VE RECEIVED A GIFT</text><text x="600" y="290" text-anchor="middle" font-family="system-ui, sans-serif" font-size="84" font-weight="700" fill="${t.fg}">${esc(g.amount)} ${esc(g.tokenSymbol)}</text><text x="600" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="26" fill="${t.sub}">${esc(g.senderLabel)} → ${esc(g.recipientLabel)} · ${esc(g.tokenName)}</text>${g.message ? `<text x="600" y="392" text-anchor="middle" font-family="system-ui, sans-serif" font-size="26" fill="${t.sub}" font-style="italic">"${esc(g.message.slice(0,80))}"</text>` : ""}<rect x="400" y="452" width="400" height="62" rx="31" fill="${t.pill}"/><text x="600" y="493" text-anchor="middle" font-family="ui-monospace, monospace" font-size="30" letter-spacing="3" fill="${t.fg}">CODE: ${esc(g.claimCode)}</text><text x="600" y="572" text-anchor="middle" font-family="system-ui, sans-serif" font-size="22" fill="${t.sub}">GiftBox · gift id ${esc(g.giftId)} · claim by ${g.expiresAt.slice(0,10)} · cash out to your bank with MoonPay</text></svg>`;
+}
+function ecardDataUri(g){ return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(ecardSvg(g)))); }
+
+function showGift(g, fromLink){
+  gift = g;
+  const card = [
+    `🎁 You've received a crypto gift!`,
+    `${g.senderLabel} sent you ${g.amount} ${g.tokenSymbol} — ${g.tokenName}${g.message ? `\n"${g.message}"` : ""}`,
+    `Claim code: ${g.claimCode}`,
+    `Gift ID: ${g.giftId}`,
+    `Valid until: ${g.expiresAt.slice(0,10)}`,
+    ``,
+    `How to claim (no wallet needed yet):`,
+    ...instructions(g).map((s,i)=>`${i+1}. ${s}`)
+  ].join("\n");
+  const el = $("giftcard"); el.textContent = card; el.classList.add("show");
+  ["s-ecard","s-copylink","s-sharelink","s-cancel"].forEach(id=>$(id).classList.remove("hidden"));
+  if (fromLink) { $("c-code").value = g.claimCode; window.scrollTo({top: document.body.scrollHeight, behavior:"smooth"}); }
+}
+
+$("s-create").addEventListener("click", ()=>{
+  const chain = $("s-chain").value, cat = $("s-cat").value, c = CATALOG[chain];
+  let tok;
+  if (cat === "stock") { const sym = $("s-stock").value; tok = { symbol: sym, name: c.stocks[sym] }; }
+  else tok = c[cat];
+  if (!tok) return;
+  const expiryDays = Math.max(1, parseInt($("s-expiry").value||"30",10));
+  const exp = new Date(Date.now() + expiryDays*86400000);
+  showGift({
+    giftId: "gg_" + Math.random().toString(36).slice(2,10),
+    claimCode: genCode(), status: "created",
+    senderLabel: $("s-sender").value || "Someone",
+    recipientLabel: $("s-recip").value || "You",
+    chainId: parseInt(chain,10), category: cat,
+    tokenSymbol: tok.symbol, tokenName: tok.name,
+    amount: String($("s-amount").value || "0"),
+    message: $("s-msg").value || "",
+    expiresAt: exp.toISOString()
+  }, false);
+  $("ecardwrap").classList.remove("show");
+  $("verdict").className = "verdict"; $("verdict").innerHTML = "";
+});
+
+$("s-ecard").addEventListener("click", ()=>{
+  if (!gift) return;
+  $("ecardimg").src = ecardDataUri(gift);
+  $("ecardwrap").classList.add("show");
+});
+$("s-copylink").addEventListener("click", async ()=>{
+  if (!gift) return;
+  await navigator.clipboard.writeText(ecardDataUri(gift)).catch(()=>{});
+  $("copied").textContent = "✅ E-card link copied — paste it in any browser to view the card image, or drop it into a chat.";
+});
+$("s-sharelink").addEventListener("click", async ()=>{
+  if (!gift) return;
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify(gift))));
+  const link = `${location.origin}${location.pathname}#gift=${payload}`;
+  await navigator.clipboard.writeText(link).catch(()=>{});
+  $("copied").textContent = "✅ Share link copied — whoever opens it sees this gift card with the claim box pre-filled.";
+});
+$("s-cancel").addEventListener("click", ()=>{
+  if (!gift) return;
+  gift.status = "cancelled";
+  $("giftcard").textContent += `\n\n⛔ This gift was CANCELLED by the sender. No funds were locked, so nothing needs to be refunded.`;
+  $("s-cancel").classList.add("hidden");
+});
+
+// Opened via a share link? Render the gift + prefill the claim code.
+if (location.hash.startsWith("#gift=")) {
+  try { showGift(JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(6))))), true); } catch(e) {}
+}
+
+$("c-check").addEventListener("click", ()=>{
+  const v = $("verdict");
+  v.className = "verdict show";
+  if (!gift) { v.classList.add("no"); v.innerHTML = "No gift has been created yet — create one above first (or open a share link)."; return; }
+  const code = $("c-code").value.replace(/[\s-]/g,"").toUpperCase();
+  const wallet = $("c-wallet").value.trim();
+  if (code !== gift.claimCode.replace(/-/g,"")) { v.classList.add("no"); v.innerHTML = "❌ <b>Claim code does not match this gift.</b> Check the code on the gift card and try again."; return; }
+  if (gift.status === "claimed") { v.classList.add("no"); v.innerHTML = "❌ <b>This gift has already been claimed.</b>"; return; }
+  if (gift.status === "cancelled") { v.classList.add("no"); v.innerHTML = "❌ <b>This gift was cancelled by the sender.</b>"; return; }
+  if (Date.now() > Date.parse(gift.expiresAt)) { v.classList.add("no"); v.innerHTML = `❌ <b>This gift expired on ${gift.expiresAt.slice(0,10)}.</b>`; return; }
+  if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) { v.classList.add("no"); v.innerHTML = "❌ That wallet address doesn't look valid (it should start with 0x and be 42 characters)."; return; }
+  gift.status = "claimed";
+  v.classList.add("ok");
+  v.innerHTML = `✅ <b>Gift claimed!</b> ${esc(gift.amount)} ${esc(gift.tokenSymbol)} is being sent to <code>${esc(wallet)}</code> — in PayBox the sender approves this payment with their passkey, then it lands in the recipient's wallet.<ol>${instructions(gift).slice(3).map(s=>`<li>${esc(s)}</li>`).join("")}</ol>`;
+});
+</script>
+</body>
+</html>
