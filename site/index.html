@@ -21,7 +21,7 @@
   h1 .rev { background:var(--red); color:var(--white); padding:0 12px; }
   .pitch { font-size:21px; margin-top:22px; max-width:720px; }
   .cta { display:flex; gap:14px; flex-wrap:wrap; margin-top:30px; }
-  .btn { display:inline-block; border:4px solid var(--black); padding:12px 22px; font-weight:700; font-size:17px; text-decoration:none; color:var(--black); background:var(--white); }
+  .btn { display:inline-block; border:4px solid var(--black); padding:12px 22px; font-weight:700; font-size:17px; text-decoration:none; color:var(--black); background:var(--white); font-family:inherit; cursor:pointer; }
   .btn.primary { background:var(--yellow); }
   .btn.dark { background:var(--black); color:var(--white); }
   section { margin-top:64px; }
@@ -71,8 +71,8 @@
 
   <div class="cta">
     <a class="btn primary" href="https://x.com/0xkinnie/status/2111528993539383359">Watch the demo on X</a>
-    <a class="btn" href="https://github.com/0xkinnie/giftbox">Source on GitHub</a>
-    <a class="btn dark" href="https://developer.paybox.sh">Get PayBox</a>
+    <button class="btn" id="copyBtn" type="button">Copy Prompt</button>
+    <a class="btn dark" href="https://paybox.sh/">Get PayBox</a>
   </div>
 
   <section>
@@ -132,11 +132,52 @@
 
 <footer>
   <div class="in">
-    <span>Source: <a href="https://github.com/0xkinnie/giftbox">github.com/0xkinnie/giftbox</a></span>
+    <span><a href="https://github.com/0xkinnie/giftbox">GitHub</a></span>
     <span>Built by <a href="https://x.com/0xkinnie">@0xkinnie</a></span>
     <span class="right">MOONPAY PAYBOX HACKATHON · CHAPTER 1</span>
   </div>
   <div class="strip"><div></div><div></div><div></div><div></div></div>
 </footer>
+
+<textarea id="agentPrompt" hidden readonly>Use the GiftBox plugin in PayBox to send a crypto gift for me.
+
+Ask me for these details first:
+1. Who receives the gift (a name or label)
+2. Chain: Base or Robinhood Chain
+3. Category: stablecoin (USDC on Base, USDG on Robinhood Chain), BTC (cbBTC, Base only), ETH, or a tokenized stock (NVDA, AAPL, TSLA, GOOGL on both chains; META, MSFT, AMZN on Base only)
+4. Amount
+5. A short gift message
+
+Then do this:
+- Call create_gift with my answers, then create_ecard, and give me the gift card, the e-card link, and the claim code.
+- Tell the recipient to open a free MoonPay account to get a wallet address, and to send me that address.
+- When I give you their address, call prepare_claim with the gift, the claim code, and the address. Show me the transfer so I can approve it with my PayBox passkey.
+- After I approve, call mark_claimed.
+- Remind the recipient they can keep the crypto or sell it to their bank account with MoonPay Sell.
+
+Rules: use only tokens from the GiftBox catalog. Nothing is escrowed. If I change my mind before the claim, call cancel_gift.</textarea>
+<script>
+  (function () {
+    var btn = document.getElementById('copyBtn');
+    var ta = document.getElementById('agentPrompt');
+    function done() {
+      var old = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = old; }, 2000);
+    }
+    btn.addEventListener('click', function () {
+      var text = ta.value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+      } else { fallback(); }
+      function fallback() {
+        ta.hidden = false;
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        ta.hidden = true;
+      }
+    });
+  })();
+</script>
 </body>
 </html>
